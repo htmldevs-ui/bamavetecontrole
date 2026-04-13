@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAMEVET - Gestão Veterinária</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Outfit', sans-serif; }
+:root {
+  --red: #A80000;
+  --red-dark: #800000;
+  --red-light: #D42020;
+  --surface: #FFFFFF;
+  --text: #1A1A1A;
+  --text-light: #6B6B6B;
+  --bg: #F3F0ED;
+}
+.app-wrapper { height: 100%; width: 100%; overflow: auto; background: var(--bg); }
+.nav-btn { transition: all 0.2s ease; position: relative; overflow: hidden; }
+.nav-btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.1); opacity: 0; transition: opacity 0.2s; }
+.nav-btn:hover::after { opacity: 1; }
+.nav-btn.active { background: var(--red); color: white; box-shadow: 0 4px 20px rgba(168,0,0,0.3); }
+.card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: all 0.25s ease; }
+.card:hover { box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+.btn-primary { background: var(--red); color: white; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif; }
+.btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(168,0,0,0.3); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-secondary { background: transparent; color: var(--red); border: 2px solid var(--red); border-radius: 12px; padding: 10px 22px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Outfit', sans-serif; }
+.btn-secondary:hover { background: rgba(168,0,0,0.05); }
+.input-field { width: 100%; padding: 12px 16px; border: 2px solid #E5E5E5; border-radius: 12px; font-size: 15px; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; outline: none; background: #FAFAFA; }
+.input-field:focus { border-color: var(--red); background: white; }
+.page { display: none; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1A1A1A; color: white; padding: 14px 24px; border-radius: 12px; font-weight: 500; z-index: 1000; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.stat-card { background: white; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--red); }
+.invoice-preview { background: white; border: 2px solid #E8E8E8; border-radius: 16px; padding: 32px; max-width: 500px; margin: 0 auto; }
+.delete-confirm { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+.badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-green { background: #ECFDF5; color: #065F46; }
+.badge-red { background: #FEF2F2; color: #991B1B; }
+.badge-yellow { background: #FFFBEB; color: #92400E; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-light); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #F0F0F0; }
+td { padding: 14px 16px; border-bottom: 1px solid #F5F5F5; font-size: 14px; }
+tr:hover td { background: #FAFAFA; }
+.logo-svg { width: 48px; height: 48px; }
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .mobile-nav { display: flex !important; }
+  .main-content { margin-left: 0 !important; }
+}
+</style>
+  <script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { DEFAULT: '#A80000', dark: '#800000', light: '#D42020' }
+      }
+    }
+  }
+}
+</script>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div class="app-wrapper" id="app"><!-- Mobile Navigation -->
+   <nav class="mobile-nav" style="display:none; position:fixed; bottom:0; left:0; right:0; background:white; z-index:50; box-shadow: 0 -2px 20px rgba(0,0,0,0.08); padding: 8px 4px; justify-content: space-around;"><button onclick="navigate('dashboard')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="layout-dashboard" style="width:20px;height:20px"></i>Início</button> <button onclick="navigate('entrada')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="trending-up" style="width:20px;height:20px"></i>Entrada</button> <button onclick="navigate('saida')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="trending-down" style="width:20px;height:20px"></i>Saída</button> <button onclick="navigate('nota')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="file-text" style="width:20px;height:20px"></i>Nota</button> <button onclick="navigate('produtos')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="package" style="width:20px;height:20px"></i>Estoque</button> <button onclick="navigate('relatorio')" class="flex flex-col items-center gap-1 p-2 text-xs font-medium" style="color:var(--text-light)"><i data-lucide="bar-chart-3" style="width:20px;height:20px"></i>Relatório</button>
+   </nav><!-- Sidebar -->
+   <aside class="sidebar" style="position:fixed; left:0; top:0; bottom:0; width:250px; background:white; z-index:40; box-shadow: 2px 0 20px rgba(0,0,0,0.04); display:flex; flex-direction:column;">
+    <div style="padding:28px 24px 20px; border-bottom: 1px solid #F0F0F0;">
+     <div class="flex items-center gap-3">
+      <div style="background:var(--red); border-radius:14px; width:48px; height:48px; display:flex; align-items:center; justify-content:center;">
+       <svg viewbox="0 0 100 100" width="32" height="32" fill="white"><ellipse cx="30" cy="55" rx="12" ry="18" /> <ellipse cx="50" cy="45" rx="10" ry="22" /> <ellipse cx="70" cy="55" rx="12" ry="18" /> <circle cx="30" cy="32" r="5" /> <circle cx="50" cy="20" r="5" /> <circle cx="70" cy="32" r="5" /> <circle cx="42" cy="70" r="4" /> <circle cx="58" cy="70" r="4" />
+       </svg>
+      </div>
+      <div>
+       <h1 id="sidebar-store-name" style="font-weight:800; font-size:20px; color:var(--red); letter-spacing:-0.5px;">BAMEVET</h1>
+       <p id="sidebar-slogan" style="font-size:11px; color:var(--text-light); font-weight:500; text-transform:uppercase; letter-spacing:0.1em;">Produtos Veterinários</p>
+      </div>
+     </div>
+    </div>
+    <nav style="padding:16px 12px; flex:1; display:flex; flex-direction:column; gap:4px;"><button onclick="navigate('dashboard')" data-nav="dashboard" class="nav-btn active flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-semibold" style="color:white;"> <i data-lucide="layout-dashboard" style="width:18px;height:18px"></i> Painel </button> <button onclick="navigate('entrada')" data-nav="entrada" class="nav-btn flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-medium" style="color:var(--text);"> <i data-lucide="trending-up" style="width:18px;height:18px"></i> Entrada de Dinheiro </button> <button onclick="navigate('saida')" data-nav="saida" class="nav-btn flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-medium" style="color:var(--text);"> <i data-lucide="trending-down" style="width:18px;height:18px"></i> Saída de Dinheiro </button> <button onclick="navigate('nota')" data-nav="nota" class="nav-btn flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-medium" style="color:var(--text);"> <i data-lucide="file-text" style="width:18px;height:18px"></i> Nota Fiscal </button> <button onclick="navigate('produtos')" data-nav="produtos" class="nav-btn flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-medium" style="color:var(--text);"> <i data-lucide="package" style="width:18px;height:18px"></i> Controle de Produtos </button> <button onclick="navigate('relatorio')" data-nav="relatorio" class="nav-btn flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm font-medium" style="color:var(--text);"> <i data-lucide="bar-chart-3" style="width:18px;height:18px"></i> Relatório Financeiro </button>
+    </nav>
+    <div style="padding:16px 20px; border-top:1px solid #F0F0F0;">
+     <p style="font-size:11px; color:var(--text-light);">© 2025 BAMEVET</p>
+    </div>
+   </aside><!-- Main Content -->
+   <main class="main-content" style="margin-left:250px; padding:32px; padding-bottom:100px;" id="main-content"><!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+     <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+      <div>
+       <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px;" id="dashboard-title">Painel de Controle</h2>
+       <p style="color:var(--text-light); font-size:14px; margin-top:4px;" id="dashboard-date"></p>
+      </div>
+      <div class="flex gap-2"><button onclick="resetDashboard()" class="btn-secondary flex items-center gap-2" title="Limpar todos os dados"> <i data-lucide="refresh-cw" style="width:16px;height:16px"></i> Resetar </button>
+      </div>
+     </div>
+     <div class="grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Entradas</p>
+       <p id="stat-entradas" style="font-size:32px; font-weight:800; color:#065F46; margin-top:8px;">R$ 0,00</p>
+      </div>
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Total Saídas</p>
+       <p id="stat-saidas" style="font-size:32px; font-weight:800; color:#991B1B; margin-top:8px;">R$ 0,00</p>
+      </div>
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Lucro Líquido</p>
+       <p id="stat-lucro" style="font-size:32px; font-weight:800; color:var(--red); margin-top:8px;">R$ 0,00</p>
+      </div>
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Produtos</p>
+       <p id="stat-produtos" style="font-size:32px; font-weight:800; color:var(--text); margin-top:8px;">0</p>
+      </div>
+     </div>
+     <div class="card mt-8" style="padding:24px;">
+      <h3 style="font-weight:700; font-size:18px; margin-bottom:16px; color:var(--text);">Últimas Transações</h3>
+      <div id="recent-transactions" style="color:var(--text-light); font-size:14px;">
+       Nenhuma transação registrada.
+      </div>
+     </div>
+    </div><!-- ENTRADA PAGE -->
+    <div id="page-entrada" class="page">
+     <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px; margin-bottom:24px;">💰 Registrar Entrada</h2>
+     <div class="card" style="padding:32px; max-width:560px;">
+      <form id="form-entrada" onsubmit="return false;">
+       <div class="mb-5"><label for="entrada-produto" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Nome do Produto</label> <input id="entrada-produto" class="input-field" placeholder="Ex: Ração Premium 15kg" required>
+       </div>
+       <div class="grid grid-cols-2 gap-4 mb-5">
+        <div><label for="entrada-qty" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Quantidade</label> <input id="entrada-qty" type="number" min="1" class="input-field" placeholder="0" required>
+        </div>
+        <div><label for="entrada-price" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Valor Unitário (R$)</label> <input id="entrada-price" type="number" step="0.01" min="0.01" class="input-field" placeholder="0,00" required>
+        </div>
+       </div>
+       <div style="background:#F7F7F7; border-radius:12px; padding:16px; margin-bottom:20px;">
+        <p style="font-size:13px; color:var(--text-light); font-weight:500;">Total Calculado</p>
+        <p id="entrada-total" style="font-size:28px; font-weight:800; color:#065F46;">R$ 0,00</p>
+       </div><button type="submit" class="btn-primary w-full flex items-center justify-center gap-2" id="btn-entrada-save"> <i data-lucide="plus-circle" style="width:18px;height:18px"></i> Registrar Entrada </button>
+      </form>
+     </div>
+    </div><!-- SAIDA PAGE -->
+    <div id="page-saida" class="page">
+     <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px; margin-bottom:24px;">💸 Registrar Saída</h2>
+     <div class="card" style="padding:32px; max-width:560px;">
+      <form id="form-saida" onsubmit="return false;">
+       <div class="mb-5"><label for="saida-motivo" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Motivo</label> <input id="saida-motivo" class="input-field" placeholder="Ex: Compra de estoque, aluguel..." required>
+       </div>
+       <div class="mb-5"><label for="saida-valor" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Valor (R$)</label> <input id="saida-valor" type="number" step="0.01" min="0.01" class="input-field" placeholder="0,00" required>
+       </div><button type="submit" class="btn-primary w-full flex items-center justify-center gap-2" id="btn-saida-save"> <i data-lucide="minus-circle" style="width:18px;height:18px"></i> Registrar Saída </button>
+      </form>
+     </div>
+    </div><!-- NOTA FISCAL PAGE -->
+    <div id="page-nota" class="page">
+     <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px; margin-bottom:24px;">🧾 Gerar Nota Fiscal</h2>
+     <div class="grid gap-6" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items:start;">
+      <div class="card" style="padding:32px;">
+       <form id="form-nota" onsubmit="return false;">
+        <div class="mb-5"><label for="nota-cliente" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Nome do Cliente</label> <input id="nota-cliente" class="input-field" placeholder="Nome completo" required>
+        </div>
+        <div id="nota-items-container">
+         <div class="flex items-center justify-between mb-3"><label style="font-size:13px; font-weight:600; color:var(--text);">Produtos</label> <button type="button" onclick="addNotaItem()" class="btn-secondary text-xs" style="padding:6px 14px; font-size:12px;">+ Adicionar</button>
+         </div>
+         <div id="nota-items-list"></div>
+        </div>
+        <div style="background:#F7F7F7; border-radius:12px; padding:16px; margin:20px 0;">
+         <p style="font-size:13px; color:var(--text-light);">Total da Nota</p>
+         <p id="nota-total" style="font-size:28px; font-weight:800; color:var(--red);">R$ 0,00</p>
+        </div><button type="submit" class="btn-primary w-full flex items-center justify-center gap-2" id="btn-nota-generate"> <i data-lucide="file-text" style="width:18px;height:18px"></i> Gerar Nota Fiscal </button>
+       </form>
+      </div>
+      <div id="nota-preview-container" style="display:none;">
+       <div class="invoice-preview" id="nota-preview"></div>
+       <div class="flex gap-3 mt-4 justify-center flex-wrap">
+        <div class="flex gap-2 items-center" style="width:100%; max-width:400px;"><label for="whatsapp-number" class="sr-only">Número WhatsApp</label> <input id="whatsapp-number" class="input-field" placeholder="Número WhatsApp (ex: 5511999999999)" style="flex:1;"> <button onclick="sendWhatsApp()" class="btn-primary flex items-center gap-2" style="background:#25D366; white-space:nowrap;"> <i data-lucide="message-circle" style="width:16px;height:16px"></i> Enviar </button>
+        </div><button onclick="downloadPDF()" class="btn-primary flex items-center gap-2"> <i data-lucide="download" style="width:16px;height:16px"></i> Baixar PDF </button>
+       </div>
+      </div>
+     </div>
+    </div><!-- PRODUTOS PAGE -->
+    <div id="page-produtos" class="page">
+     <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px;">📦 Controle de Produtos</h2><button onclick="toggleAddProduct()" class="btn-primary flex items-center gap-2" id="btn-add-product"> <i data-lucide="plus" style="width:16px;height:16px"></i> Novo Produto </button>
+     </div>
+     <div id="add-product-form" class="card mb-6" style="padding:24px; display:none; max-width:560px;">
+      <form onsubmit="return false;" id="form-product">
+       <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label for="prod-name" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Nome do Produto</label> <input id="prod-name" class="input-field" placeholder="Nome" required>
+        </div>
+        <div><label for="prod-stock" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Quantidade</label> <input id="prod-stock" type="number" min="0" class="input-field" placeholder="0" required>
+        </div>
+       </div>
+       <div class="mb-4"><label for="prod-price" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Preço Unitário (R$)</label> <input id="prod-price" type="number" step="0.01" min="0" class="input-field" placeholder="0,00" required>
+       </div><button type="submit" class="btn-primary" id="btn-save-product">Salvar Produto</button>
+      </form>
+     </div>
+     <div class="card" style="overflow-x:auto;">
+      <table>
+       <thead>
+        <tr>
+         <th>Produto</th>
+         <th>Estoque</th>
+         <th>Preço Unit.</th>
+         <th>Status</th>
+         <th></th>
+        </tr>
+       </thead>
+       <tbody id="products-table-body">
+        <tr>
+         <td colspan="5" style="text-align:center; color:var(--text-light); padding:32px;">Nenhum produto cadastrado.</td>
+        </tr>
+       </tbody>
+      </table>
+     </div>
+    </div><!-- RELATORIO PAGE -->
+    <div id="page-relatorio" class="page">
+     <h2 style="font-size:28px; font-weight:800; color:var(--text); letter-spacing:-0.5px; margin-bottom:24px;">📊 Relatório Financeiro</h2>
+     <div class="card mb-6" style="padding:20px;">
+      <div class="flex items-end gap-4 flex-wrap">
+       <div><label for="filter-start" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Data Início</label> <input id="filter-start" type="date" class="input-field" style="width:auto;">
+       </div>
+       <div><label for="filter-end" style="font-size:13px; font-weight:600; color:var(--text); display:block; margin-bottom:6px;">Data Fim</label> <input id="filter-end" type="date" class="input-field" style="width:auto;">
+       </div><button onclick="applyFilter()" class="btn-primary">Filtrar</button> <button onclick="clearFilter()" class="btn-secondary">Limpar</button>
+      </div>
+     </div>
+     <div class="grid gap-6 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Entradas</p>
+       <p id="rel-entradas" style="font-size:28px; font-weight:800; color:#065F46; margin-top:8px;">R$ 0,00</p>
+      </div>
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Saídas</p>
+       <p id="rel-saidas" style="font-size:28px; font-weight:800; color:#991B1B; margin-top:8px;">R$ 0,00</p>
+      </div>
+      <div class="stat-card">
+       <p style="font-size:13px; color:var(--text-light); font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Lucro Líquido</p>
+       <p id="rel-lucro" style="font-size:28px; font-weight:800; color:var(--red); margin-top:8px;">R$ 0,00</p>
+      </div>
+     </div>
+     <div class="card" style="overflow-x:auto;">
+      <table>
+       <thead>
+        <tr>
+         <th>Data</th>
+         <th>Tipo</th>
+         <th>Descrição</th>
+         <th>Valor</th>
+         <th style="width:40px;"></th>
+        </tr>
+       </thead>
+       <tbody id="relatorio-table-body">
+        <tr>
+         <td colspan="4" style="text-align:center; color:var(--text-light); padding:32px;">Nenhuma transação encontrada.</td>
+        </tr>
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </main>
+  </div>
+  <div id="toast-container"></div>
+  <script>
+// State
+let allData = [];
+let currentPage = 'dashboard';
+let notaItems = [{ product: '', qty: 1, price: 0 }];
+let lastGeneratedNota = null;
+let filterStart = null;
+let filterEnd = null;
+
+const defaultConfig = {
+  store_name: 'BAMEVET',
+  store_slogan: 'Produtos Veterinários',
+  background_color: '#F3F0ED',
+  surface_color: '#FFFFFF',
+  text_color: '#1A1A1A',
+  primary_action_color: '#A80000',
+  secondary_action_color: '#25D366',
+  font_family: 'Outfit',
+  font_size: 16
+};
+
+// Element SDK
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => {
+    const bg = config.background_color || defaultConfig.background_color;
+    const surface = config.surface_color || defaultConfig.surface_color;
+    const text = config.text_color || defaultConfig.text_color;
+    const primary = config.primary_action_color || defaultConfig.primary_action_color;
+    const font = config.font_family || defaultConfig.font_family;
+    const fontSize = config.font_size || defaultConfig.font_size;
+    const name = config.store_name || defaultConfig.store_name;
+    const slogan = config.store_slogan || defaultConfig.store_slogan;
+
+    document.documentElement.style.setProperty('--bg', bg);
+    document.documentElement.style.setProperty('--surface', surface);
+    document.documentElement.style.setProperty('--text', text);
+    document.documentElement.style.setProperty('--red', primary);
+    document.documentElement.style.setProperty('--red-dark', adjustColor(primary, -30));
+    document.documentElement.style.setProperty('--red-light', adjustColor(primary, 40));
+
+    document.querySelector('.app-wrapper').style.background = bg;
+    document.querySelectorAll('.card, .stat-card, .sidebar, .invoice-preview').forEach(el => el.style.background = surface);
+    document.querySelectorAll('.sidebar, .mobile-nav').forEach(el => el.style.background = surface);
+    document.querySelectorAll('h2, h3, th, label').forEach(el => { if (!el.closest('.invoice-preview') && !el.classList.contains('sr-only')) el.style.color = text; });
+    document.querySelectorAll('.btn-primary').forEach(el => { if (!el.style.background || el.style.background.includes('var(--red)') || el.style.background === primary || el.style.backgroundColor === 'rgb(168, 0, 0)') el.style.background = primary; });
+    document.querySelectorAll('.nav-btn.active').forEach(el => { el.style.background = primary; });
+
+    document.body.style.fontFamily = `${font}, Outfit, sans-serif`;
+    document.body.style.fontSize = `${fontSize}px`;
+
+    const sn = document.getElementById('sidebar-store-name');
+    const ss = document.getElementById('sidebar-slogan');
+    if (sn) { sn.textContent = name; sn.style.color = primary; }
+    if (ss) ss.textContent = slogan;
+  },
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: (v) => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } }
+    ],
+    borderables: [],
+    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['store_name', config.store_name || defaultConfig.store_name],
+    ['store_slogan', config.store_slogan || defaultConfig.store_slogan]
+  ])
+});
+
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  let r = Math.max(0, Math.min(255, parseInt(hex.substr(0,2),16) + amount));
+  let g = Math.max(0, Math.min(255, parseInt(hex.substr(2,2),16) + amount));
+  let b = Math.max(0, Math.min(255, parseInt(hex.substr(4,2),16) + amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// Data SDK
+const dataHandler = {
+  onDataChanged(data) {
+    allData = data;
+    updateDashboard();
+    updateProducts();
+    updateRelatorio();
+  }
+};
+
+(async () => {
+  const r = await window.dataSdk.init(dataHandler);
+  if (!r.isOk) console.error('Data SDK init failed');
+})();
+
+// Navigation
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    const primary = window.elementSdk.config.primary_action_color || defaultConfig.primary_action_color;
+    if (btn.dataset.nav === page) {
+      btn.classList.add('active');
+      btn.style.background = primary;
+      btn.style.color = 'white';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--text)';
+    }
+  });
+}
+
+// Formatters
+function fmt(v) { return 'R$ ' + (v || 0).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function fmtDate(iso) { const d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+
+// Toast
+function showToast(msg, type='success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = type === 'error' ? '#991B1B' : '#1A1A1A';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// Entrada
+document.getElementById('entrada-qty').addEventListener('input', calcEntradaTotal);
+document.getElementById('entrada-price').addEventListener('input', calcEntradaTotal);
+function calcEntradaTotal() {
+  const q = parseFloat(document.getElementById('entrada-qty').value) || 0;
+  const p = parseFloat(document.getElementById('entrada-price').value) || 0;
+  document.getElementById('entrada-total').textContent = fmt(q * p);
+}
+
+document.getElementById('form-entrada').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const product = document.getElementById('entrada-produto').value.trim();
+  const qty = parseFloat(document.getElementById('entrada-qty').value);
+  const price = parseFloat(document.getElementById('entrada-price').value);
+  if (!product || !qty || !price) return;
+  if (allData.length >= 999) { showToast('Limite de 999 registros atingido!', 'error'); return; }
+  const btn = document.getElementById('btn-entrada-save');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const r = await window.dataSdk.create({ type: 'entrada', product_name: product, quantity: qty, unit_price: price, total: qty * price, description: product, created_at: new Date().toISOString(), client_name: '', client_phone: '', items_json: '', stock: 0 });
+  btn.disabled = false; btn.innerHTML = '<i data-lucide="plus-circle" style="width:18px;height:18px"></i> Registrar Entrada';
+  lucide.createIcons();
+  if (r.isOk) { showToast('Entrada registrada!'); document.getElementById('form-entrada').reset(); document.getElementById('entrada-total').textContent = 'R$ 0,00'; }
+  else showToast('Erro ao salvar.', 'error');
+});
+
+// Saida
+document.getElementById('form-saida').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const motivo = document.getElementById('saida-motivo').value.trim();
+  const valor = parseFloat(document.getElementById('saida-valor').value);
+  if (!motivo || !valor) return;
+  if (allData.length >= 999) { showToast('Limite de 999 registros atingido!', 'error'); return; }
+  const btn = document.getElementById('btn-saida-save');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const r = await window.dataSdk.create({ type: 'saida', product_name: '', quantity: 0, unit_price: 0, total: valor, description: motivo, created_at: new Date().toISOString(), client_name: '', client_phone: '', items_json: '', stock: 0 });
+  btn.disabled = false; btn.innerHTML = '<i data-lucide="minus-circle" style="width:18px;height:18px"></i> Registrar Saída';
+  lucide.createIcons();
+  if (r.isOk) { showToast('Saída registrada!'); document.getElementById('form-saida').reset(); }
+  else showToast('Erro ao salvar.', 'error');
+});
+
+// Nota Fiscal
+function addNotaItem() { notaItems.push({ product: '', qty: 1, price: 0 }); renderNotaItems(); }
+function removeNotaItem(i) { notaItems.splice(i, 1); if (notaItems.length === 0) notaItems.push({ product: '', qty: 1, price: 0 }); renderNotaItems(); }
+function updateNotaItem(i, field, value) { notaItems[i][field] = field === 'product' ? value : parseFloat(value) || 0; calcNotaTotal(); }
+function calcNotaTotal() {
+  const total = notaItems.reduce((s, it) => s + (it.qty * it.price), 0);
+  document.getElementById('nota-total').textContent = fmt(total);
+}
+function renderNotaItems() {
+  const c = document.getElementById('nota-items-list');
+  c.innerHTML = '';
+  notaItems.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'grid gap-2 mb-3';
+    row.style.gridTemplateColumns = '1fr 70px 100px 36px';
+    row.innerHTML = `
+      <input class="input-field" placeholder="Produto" value="${item.product}" oninput="updateNotaItem(${i},'product',this.value)" aria-label="Produto ${i+1}">
+      <input class="input-field" type="number" min="1" placeholder="Qtd" value="${item.qty}" oninput="updateNotaItem(${i},'qty',this.value)" aria-label="Quantidade ${i+1}">
+      <input class="input-field" type="number" step="0.01" min="0" placeholder="R$" value="${item.price || ''}" oninput="updateNotaItem(${i},'price',this.value)" aria-label="Preço ${i+1}">
+      <button onclick="removeNotaItem(${i})" style="background:#FEF2F2; border:none; border-radius:10px; cursor:pointer; color:#991B1B; display:flex; align-items:center; justify-content:center;" aria-label="Remover item ${i+1}"><i data-lucide="x" style="width:16px;height:16px"></i></button>`;
+    c.appendChild(row);
+  });
+  lucide.createIcons();
+  calcNotaTotal();
+}
+
+document.getElementById('form-nota').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const cliente = document.getElementById('nota-cliente').value.trim();
+  if (!cliente) return;
+  const validItems = notaItems.filter(it => it.product && it.qty > 0 && it.price > 0);
+  if (validItems.length === 0) { showToast('Adicione pelo menos um produto.', 'error'); return; }
+  if (allData.length >= 999) { showToast('Limite de 999 registros atingido!', 'error'); return; }
+
+  const total = validItems.reduce((s, it) => s + it.qty * it.price, 0);
+  const now = new Date().toISOString();
+  const storeName = window.elementSdk.config.store_name || defaultConfig.store_name;
+
+  const btn = document.getElementById('btn-nota-generate');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  const r = await window.dataSdk.create({ type: 'nota', product_name: '', quantity: 0, unit_price: 0, total, description: 'Nota Fiscal - ' + cliente, client_name: cliente, client_phone: '', items_json: JSON.stringify(validItems), created_at: now, stock: 0 });
+  btn.disabled = false; btn.innerHTML = '<i data-lucide="file-text" style="width:18px;height:18px"></i> Gerar Nota Fiscal';
+  lucide.createIcons();
+
+  if (r.isOk) {
+    // Atualizar estoque dos produtos
+    for (const item of validItems) {
+      const product = allData.find(d => d.type === 'produto' && d.product_name.toLowerCase() === item.product.toLowerCase());
+      if (product) {
+        const newStock = Math.max(0, product.stock - item.qty);
+        const updatedProduct = { ...product, stock: newStock };
+        await window.dataSdk.update(updatedProduct);
+      }
+    }
+    
+    // Registrar entrada de dinheiro automaticamente (sem description vazia para não duplicar)
+    const entradaResult = await window.dataSdk.create({ 
+      type: 'entrada', 
+      product_name: 'Venda - ' + cliente, 
+      quantity: validItems.length, 
+      unit_price: total / validItems.length, 
+      total: total, 
+      description: 'Nota Fiscal #' + cliente, 
+      created_at: now, 
+      client_name: cliente, 
+      client_phone: '', 
+      items_json: JSON.stringify(validItems), 
+      stock: 0 
+    });
+    
+    lastGeneratedNota = { cliente, items: validItems, total, date: now };
+    showToast('✅ Nota gerada! Estoque e entrada atualizados!');
+    renderNotaPreview(storeName, cliente, validItems, total, now);
+    document.getElementById('form-nota').reset();
+    notaItems = [{ product: '', qty: 1, price: 0 }];
+    renderNotaItems();
+  } else showToast('Erro ao gerar nota.', 'error');
+});
+
+function renderNotaPreview(storeName, cliente, items, total, dateStr) {
+  const c = document.getElementById('nota-preview-container');
+  c.style.display = 'block';
+  const primary = window.elementSdk.config.primary_action_color || defaultConfig.primary_action_color;
+  const date = new Date(dateStr);
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateBR = date.toLocaleDateString('pt-BR');
+  
+  document.getElementById('nota-preview').innerHTML = `
+    <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4;">
+      <!-- Header -->
+      <div style="text-align:center; margin-bottom:16px; padding-bottom:12px; border-bottom: 2px solid #333;">
+        <h3 style="font-size:16px; font-weight:bold; margin:0 0 4px 0;">${storeName}</h3>
+        <p style="font-size:11px; margin:2px 0; color:#666;">COMPROVANTE DE VENDA</p>
+      </div>
+      
+      <!-- Info Cliente e Data -->
+      <div style="margin-bottom:12px; font-size:11px; line-height:1.6;">
+        <p style="margin:0;"><strong>CLIENTE:</strong> ${cliente}</p>
+        <p style="margin:0;"><strong>DATA:</strong> ${dateBR}</p>
+        <p style="margin:0;"><strong>HORA:</strong> ${time}</p>
+      </div>
+      
+      <!-- Separator -->
+      <div style="border-top: 1px dashed #999; margin:12px 0; height:0;"></div>
+      
+      <!-- Items Header -->
+      <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:bold; font-size:11px; border-bottom:1px solid #999; padding-bottom:4px;">
+        <div style="flex:1;">PRODUTO</div>
+        <div style="width:40px; text-align:center;">QTD</div>
+        <div style="width:55px; text-align:right;">V.UNIT</div>
+        <div style="width:60px; text-align:right;">TOTAL</div>
+      </div>
+      
+      <!-- Items -->
+      <div style="margin-bottom:12px;">
+        ${items.map(it => `
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px; padding:2px 0;">
+            <div style="flex:1; word-break:break-word;">${it.product}</div>
+            <div style="width:40px; text-align:center;">${it.qty}</div>
+            <div style="width:55px; text-align:right;">${fmt(it.price)}</div>
+            <div style="width:60px; text-align:right; font-weight:bold;">${fmt(it.qty * it.price)}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Separator -->
+      <div style="border-top: 1px dashed #999; margin:12px 0; height:0;"></div>
+      
+      <!-- Totalizador -->
+      <div style="margin-bottom:12px; font-size:11px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>SUBTOTAL</span>
+          <span>${fmt(total)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px; padding:6px 0; background:#f0f0f0; padding:6px 4px; border-radius:4px;">
+          <span>TOTAL</span>
+          <span>${fmt(total)}</span>
+        </div>
+      </div>
+      
+      <!-- Separator -->
+      <div style="border-top: 2px solid #333; margin:12px 0; height:0;"></div>
+      
+      <!-- Footer -->
+      <div style="text-align:center; font-size:10px; color:#666; margin-top:12px;">
+        <p style="margin:2px 0;">✓ Compra Realizada com Sucesso</p>
+        <p style="margin:2px 0;">Nº ${Math.random().toString(36).substr(2,8).toUpperCase()}</p>
+        <p style="margin:4px 0 0 0;">Obrigado pela preferência! 🐾</p>
+      </div>
+    </div>`;
+}
+
+// WhatsApp
+function sendWhatsApp() {
+  if (!lastGeneratedNota) { showToast('Gere uma nota fiscal primeiro.', 'error'); return; }
+  const phone = document.getElementById('whatsapp-number').value.replace(/\D/g, '');
+  if (!phone) { showToast('Insira o número do WhatsApp.', 'error'); return; }
+  const storeName = window.elementSdk.config.store_name || defaultConfig.store_name;
+  const n = lastGeneratedNota;
+  let msg = `🐾 *${storeName} - Nota Fiscal*\n\n`;
+  msg += `👤 Cliente: ${n.cliente}\n📅 Data: ${fmtDate(n.date)}\n\n`;
+  msg += `📋 *Produtos:*\n`;
+  n.items.forEach(it => { msg += `• ${it.product} x${it.qty} = ${fmt(it.qty * it.price)}\n`; });
+  msg += `\n💰 *Total: ${fmt(n.total)}*\n\nObrigado pela preferência! 🐾`;
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// Download PDF
+function downloadPDF() {
+  if (!lastGeneratedNota) { showToast('Gere uma nota fiscal primeiro.', 'error'); return; }
+  const btn = document.querySelector('button[onclick="downloadPDF()"]');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader" style="width:16px;height:16px; animation: spin 1s linear infinite;"></i> Gerando...';
+  
+  const element = document.getElementById('nota-preview').cloneNode(true);
+  const n = lastGeneratedNota;
+  const filename = `nota_${n.cliente.replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+  
+  setTimeout(() => {
+    try {
+      const opt = { 
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, allowTaint: true, useCORS: false },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+      
+      html2pdf().set(opt).from(element).save().finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        lucide.createIcons();
+        showToast('✅ PDF baixado com sucesso!');
+      });
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      lucide.createIcons();
+      showToast('Erro ao gerar PDF.', 'error');
+    }
+  }, 100);
+}
+
+
+
+// Products
+function toggleAddProduct() {
+  const f = document.getElementById('add-product-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+document.getElementById('form-product').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('prod-name').value.trim();
+  const stock = parseInt(document.getElementById('prod-stock').value);
+  const price = parseFloat(document.getElementById('prod-price').value);
+  if (!name) return;
+  if (allData.length >= 999) { showToast('Limite de 999 registros atingido!', 'error'); return; }
+  const btn = document.getElementById('btn-save-product');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const r = await window.dataSdk.create({ type: 'produto', product_name: name, quantity: 0, unit_price: price || 0, total: 0, description: '', created_at: new Date().toISOString(), client_name: '', client_phone: '', items_json: '', stock: stock || 0 });
+  btn.disabled = false; btn.textContent = 'Salvar Produto';
+  if (r.isOk) { showToast('Produto cadastrado!'); document.getElementById('form-product').reset(); document.getElementById('add-product-form').style.display = 'none'; }
+  else showToast('Erro ao salvar.', 'error');
+});
+
+let deletingId = null;
+function confirmDeleteProduct(id) {
+  if (deletingId === id) { deletingId = null; updateProducts(); return; }
+  deletingId = id;
+  updateProducts();
+}
+async function deleteProduct(rec) {
+  const r = await window.dataSdk.delete(rec);
+  if (r.isOk) showToast('Produto removido!');
+  else showToast('Erro ao remover.', 'error');
+  deletingId = null;
+}
+
+function updateProducts() {
+  const products = allData.filter(d => d.type === 'produto');
+  const tbody = document.getElementById('products-table-body');
+  if (products.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-light); padding:32px;">Nenhum produto cadastrado.</td></tr>';
+    return;
+  }
+  const existingRows = new Map([...tbody.children].map(el => [el.dataset.id, el]));
+  const fragment = document.createDocumentFragment();
+  products.forEach(p => {
+    let row = existingRows.get(p.__backendId);
+    const statusBadge = p.stock <= 0 ? '<span class="badge badge-red">Sem estoque</span>' : p.stock <= 5 ? '<span class="badge badge-yellow">Baixo</span>' : '<span class="badge badge-green">Disponível</span>';
+    const isDeleting = deletingId === p.__backendId;
+    const actionHtml = isDeleting
+      ? `<div class="delete-confirm"><button onclick="deleteProduct(allData.find(d=>d.__backendId==='${p.__backendId}'))" style="background:#991B1B;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:600;">Confirmar</button><button onclick="confirmDeleteProduct('${p.__backendId}')" style="background:transparent;border:1px solid #ccc;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Cancelar</button></div>`
+      : `<button onclick="confirmDeleteProduct('${p.__backendId}')" style="background:transparent;border:none;cursor:pointer;color:#991B1B;"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button>`;
+    if (!row) {
+      row = document.createElement('tr');
+      row.dataset.id = p.__backendId;
+    }
+    row.innerHTML = `<td style="font-weight:600;">${p.product_name}</td><td>${p.stock}</td><td>${fmt(p.unit_price)}</td><td>${statusBadge}</td><td>${actionHtml}</td>`;
+    existingRows.delete(p.__backendId);
+    fragment.appendChild(row);
+  });
+  existingRows.forEach(el => el.remove());
+  tbody.innerHTML = '';
+  tbody.appendChild(fragment);
+  document.getElementById('stat-produtos').textContent = products.length;
+  lucide.createIcons();
+}
+
+// Dashboard & Relatorio
+function updateDashboard() {
+  const entradas = allData.filter(d => d.type === 'entrada' && d.description !== '');
+  const saidas = allData.filter(d => d.type === 'saida');
+  const totalIn = entradas.reduce((s, d) => s + (d.total || 0), 0);
+  const totalOut = saidas.reduce((s, d) => s + (d.total || 0), 0);
+  document.getElementById('stat-entradas').textContent = fmt(totalIn);
+  document.getElementById('stat-saidas').textContent = fmt(totalOut);
+  document.getElementById('stat-lucro').textContent = fmt(totalIn - totalOut);
+  document.getElementById('stat-lucro').style.color = (totalIn - totalOut) >= 0 ? '#065F46' : '#991B1B';
+
+  const recent = [...allData].filter(d => d.type === 'entrada' || d.type === 'saida' || d.type === 'nota').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
+  const rc = document.getElementById('recent-transactions');
+  if (recent.length === 0) { rc.textContent = 'Nenhuma transação registrada.'; return; }
+  rc.innerHTML = recent.map(d => {
+    const icon = d.type === 'entrada' ? '💰' : d.type === 'saida' ? '💸' : '🧾';
+    const color = d.type === 'entrada' ? '#065F46' : d.type === 'saida' ? '#991B1B' : 'var(--red)';
+    return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F5F5F5;"><div><span>${icon}</span> <span style="font-weight:600; font-size:14px;">${d.description || d.product_name || 'Nota Fiscal'}</span><br><span style="font-size:12px; color:var(--text-light);">${d.created_at ? fmtDate(d.created_at) : ''}</span></div><span style="font-weight:700; color:${color};">${d.type === 'saida' ? '-' : '+'}${fmt(d.total)}</span></div>`;
+  }).join('');
+
+  document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function updateRelatorio() {
+  let filtered = allData.filter(d => d.type === 'entrada' || d.type === 'saida');
+  if (filterStart) filtered = filtered.filter(d => new Date(d.created_at) >= new Date(filterStart));
+  if (filterEnd) filtered = filtered.filter(d => new Date(d.created_at) <= new Date(filterEnd + 'T23:59:59'));
+  const totalIn = filtered.filter(d => d.type === 'entrada').reduce((s, d) => s + (d.total || 0), 0);
+  const totalOut = filtered.filter(d => d.type === 'saida').reduce((s, d) => s + (d.total || 0), 0);
+  document.getElementById('rel-entradas').textContent = fmt(totalIn);
+  document.getElementById('rel-saidas').textContent = fmt(totalOut);
+  document.getElementById('rel-lucro').textContent = fmt(totalIn - totalOut);
+  document.getElementById('rel-lucro').style.color = (totalIn - totalOut) >= 0 ? '#065F46' : '#991B1B';
+
+  const tbody = document.getElementById('relatorio-table-body');
+  const sorted = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-light); padding:32px;">Nenhuma transação encontrada.</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(d => {
+    const badge = d.type === 'entrada' ? '<span class="badge badge-green">Entrada</span>' : '<span class="badge badge-red">Saída</span>';
+    const deleteBtn = `<button onclick="deleteTransaction(allData.find(x=>x.__backendId==='${d.__backendId}'))" style="background:transparent;border:none;cursor:pointer;color:#991B1B;" title="Deletar transação"><i data-lucide="trash-2" style="width:16px;height:16px"></i></button>`;
+    return `<tr><td>${d.created_at ? fmtDate(d.created_at) : '-'}</td><td>${badge}</td><td>${d.description || d.product_name}</td><td style="font-weight:700; color:${d.type === 'entrada' ? '#065F46' : '#991B1B'};">${d.type === 'saida' ? '-' : ''}${fmt(d.total)}</td><td>${deleteBtn}</td></tr>`;
+  }).join('');
+}
+
+function applyFilter() {
+  filterStart = document.getElementById('filter-start').value || null;
+  filterEnd = document.getElementById('filter-end').value || null;
+  updateRelatorio();
+}
+function clearFilter() {
+  filterStart = null; filterEnd = null;
+  document.getElementById('filter-start').value = '';
+  document.getElementById('filter-end').value = '';
+  document.getElementById('rel-entradas').textContent = 'R$ 0,00';
+  document.getElementById('rel-saidas').textContent = 'R$ 0,00';
+  document.getElementById('rel-lucro').textContent = 'R$ 0,00';
+  document.getElementById('relatorio-table-body').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-light); padding:32px;">Nenhuma transação encontrada.</td></tr>';
+  updateRelatorio();
+}
+
+async function deleteTransaction(rec) {
+  const r = await window.dataSdk.delete(rec);
+  if (r.isOk) showToast('Transação removida!');
+  else showToast('Erro ao remover.', 'error');
+}
+
+let resetConfirmingReset = false;
+async function resetDashboard() {
+  const btn = document.querySelector('button[onclick="resetDashboard()"]');
+  
+  if (!resetConfirmingReset) {
+    resetConfirmingReset = true;
+    btn.style.background = '#991B1B';
+    btn.innerHTML = '⚠️ Confirmar Limpeza';
+    setTimeout(() => {
+      resetConfirmingReset = false;
+      btn.style.background = '';
+      btn.innerHTML = '<i data-lucide="refresh-cw" style="width:16px;height:16px"></i> Resetar';
+      lucide.createIcons();
+    }, 3000);
+    return;
+  }
+  
+  resetConfirmingReset = false;
+  btn.disabled = true;
+  btn.textContent = 'Limpando...';
+  
+  const recordsToDelete = [...allData];
+  for (const record of recordsToDelete) {
+    await window.dataSdk.delete(record);
+  }
+  
+  btn.disabled = false;
+  btn.style.background = '';
+  btn.innerHTML = '<i data-lucide="refresh-cw" style="width:16px;height:16px"></i> Resetar';
+  lucide.createIcons();
+  showToast('✅ Todos os dados foram removidos!');
+}
+
+// Init
+document.getElementById('dashboard-date').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+renderNotaItems();
+setTimeout(() => lucide.createIcons(), 100);
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ebd128ba58348de',t:'MTc3NjExMDU4OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
